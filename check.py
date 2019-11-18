@@ -261,6 +261,8 @@ def policy_options(config, config2):
     #找到有exact的address
     p_exact_address = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}|[a-z0-9]{1,4}:[a-z0-9]{1,4}:[a-z0-9]{1,4}::[a-z0-9]{0,4}/\d{1,3}) exact'
     for item in res_prefix_list:
+        if item[1].endswith('-IN"'):
+            continue
         res_exact_address = re.findall(p_exact_address, item[0])
         for item2 in res_exact_address:
             if 'static-route-entry {}'.format(item2) not in config:

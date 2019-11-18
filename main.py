@@ -68,10 +68,17 @@ class App(tk.Frame):
 
     def export(self):
         '''导出检查结果'''
-        self.save_name = filedialog.asksaveasfilename()
+        # self.save_name = filedialog.asksaveasfilename()
 
-        with open(self.save_name, 'w') as f:
+        if not os.path.exists('检查结果'):
+            os.makedirs('检查结果')
+
+        host_name = self.get_host_name(self.config).split('.')[0]
+        self.save_name = os.path.join('检查结果', host_name + '检查.log')
+        with open(self.save_name, 'w', encoding='utf-8') as f:
             f.write(self.res_text.get("0.0", "end"))
+
+        msg.showinfo('提示', '保存成功请在 {} 目录查看'.format(os.path.join(os.getcwd(),'检查结果\\')))
 
     def check(self):
         if self.config == None:
@@ -113,10 +120,22 @@ class App(tk.Frame):
     def check_ce3(self):
         return os.path.exists('CE3.log')
 
+    def get_host_name(self, config):
+        '''获取设备名称'''
+
+        p_host_name = r'(?s)(system\n {8}name "(.*?)")'
+        res_host_name = re.search(p_host_name, config)
+        if not res_host_name:
+            host_name = ''
+        else:
+            host_name = res_host_name.group(2)
+
+        return host_name
+
 
 root = tk.Tk()
 root.geometry('700x380+500+200')
-root.title('电信CE配置检查 V1.1.4')
+root.title('电信CE配置检查 V1.1.5')
 # root.resizable(0,0)
 myapp = App(master=root)
 myapp.mainloop()
