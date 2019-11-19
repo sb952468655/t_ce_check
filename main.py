@@ -68,16 +68,16 @@ class App(tk.Frame):
 
     def export(self):
         '''导出检查结果'''
-        # self.save_name = filedialog.asksaveasfilename()
 
-        if not os.path.exists('检查结果'):
-            os.makedirs('检查结果')
+        file_path = os.path.join('检查结果', '{}和{}'.format(self.config_1_name, self.config_2_name))
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
 
-        self.save_name = os.path.join('检查结果', '{}与{}检查结果.log'.format(self.config_1_name, self.config_2_name))
+        self.save_name = os.path.join(file_path, '{}与{}检查结果.log'.format(self.config_1_name, self.config_2_name))
         with open(self.save_name, 'w', encoding='utf-8') as f:
             f.write(self.res_text.get("0.0", "end"))
 
-        msg.showinfo('提示', '保存成功请在 {} 目录查看'.format(os.path.join(os.getcwd(),'检查结果\\')))
+        msg.showinfo('提示', '保存成功请在 {} 目录查看'.format(os.path.join(os.getcwd(),file_path + '\\')))
 
     def check(self):
         if self.config == None:
@@ -88,15 +88,14 @@ class App(tk.Frame):
             return
 
         if not self.check_ce3():
-            msg.showerror('错误', 'CE3.log文件不存在，请检查')
+            msg.showerror('错误', 'JS-NJ-GL-CE-3.CDMA.log文件不存在，请检查')
             return
 
         err_text =  '1、ssh\n\n' + self.config_1_name + '\n\n' + ssh(self.config) + '\n\n'
         err_text += self.config_2_name + '\n\n' + ssh(self.config2) + '\n\n\n\n\n\n'
         err_text += '2、ftp\n\n' + self.config_1_name + '\n\n' + ftp(self.config) + '\n\n'
         err_text += self.config_2_name + '\n\n' + ftp(self.config2) + '\n\n\n\n\n\n'
-        err_text += '3、qos\n\n' + qos(self.config, self.config2) + '\n\n'
-        # err_text += self.config_2_name + '\n\n' + qos(self.config2) + '\n\n\n\n\n\n'
+        err_text += '3、qos\n\n' + qos(self.config, self.config2) + '\n\n\n\n\n\n'
         err_text += '4、isis bfd\n\n' + self.config_1_name + '\n\n' + isis_bfd(self.config) + '\n\n'
         err_text += self.config_2_name + '\n\n' + isis_bfd(self.config2) + '\n\n\n\n\n\n'
         err_text += '5、static-route bfd\n\n' + self.config_1_name + '\n\n' + static_route_bfd(self.config) + '\n\n'
@@ -104,10 +103,12 @@ class App(tk.Frame):
         err_text += '6、bgp bfd\n\n' + self.config_1_name + '\n\n' + bgp_bfd(self.config) + '\n\n'
         err_text += self.config_2_name + '\n\n' + bgp_bfd(self.config2) + '\n\n\n\n\n\n'
         err_text += '7、policy-options\n\n' + policy_options(self.config, self.config2) + '\n\n\n\n\n\n'
-        err_text += '8、ip-filter 200限制\n\n' + self.config_1_name + '\n\n' + ip_filter_200(self.config) + '\n\n'
-        err_text += self.config_2_name + '\n\n' + ip_filter_200(self.config2) + '\n\n\n\n\n\n'
-        err_text += '9、垃圾静态路由检查\n\n' + self.config_1_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config) + '\n' + self.config_2_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config2) + '\n\n\n\n\n\n'
-        err_text += '10、路由发布对比\n\n' + policy_options_diff(self.config, self.config2)
+        err_text += '8、路由发布对比\n\n' + policy_options_diff(self.config, self.config2) + '\n\n\n\n\n\n'
+        err_text += '9、cpm-filter\n\n' + cpm_filter_check(self.config, self.config2) + '\n\n\n\n\n\n'
+        err_text += '10、ip-filter 200限制\n\n' +  ip_filter_200(self.config, self.config2) + '\n\n\n\n\n\n'
+        # err_text += self.config_2_name + '\n\n' + ip_filter_200(self.config2) + '\n\n\n\n\n\n'
+        err_text += '11、垃圾静态路由检查\n\n' + self.config_1_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config) + '\n' \
+            + self.config_2_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config2) + '\n\n\n\n\n\n'
         self.res_text.insert(tk.END, err_text)
 
 
@@ -117,12 +118,12 @@ class App(tk.Frame):
         root.geometry("+0+0")
 
     def check_ce3(self):
-        return os.path.exists('CE3.log')
+        return os.path.exists('JS-NJ-GL-CE-3.CDMA.log')
 
 
 root = tk.Tk()
 root.geometry('700x380+500+200')
-root.title('电信CE配置检查 V1.1.9')
+root.title('电信CE配置检查 V1.1.12')
 # root.resizable(0,0)
 myapp = App(master=root)
 myapp.mainloop()

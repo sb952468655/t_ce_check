@@ -51,11 +51,8 @@ def qos(config1,config2):
     '''echo "QoS Policy Configuration"，对比JS-NJ-GL-CE-3.CDMA（115.168.128.180）'''
 
     err = ''
-    config_ce = open('CE3.log').read()
+    config_ce = open('JS-NJ-GL-CE-3.CDMA.log').read()
     p_qos = r'''(?s)(qos\n.*?\n {4}exit)'''
-
-    # config_1_lines = config1.split('\n')
-    # ce3_lines = config2.split('\n')
 
     res_qos = re.findall(p_qos, config1)
     res_qos2 = re.findall(p_qos, config2)
@@ -74,51 +71,26 @@ def qos(config1,config2):
     host_1_name = get_host_name(config1)
     host_2_name = get_host_name(config2)
 
-    if not os.path.exists('检查结果'):
-        os.makedirs('检查结果')
+
+    file_path = os.path.join('检查结果', '{}和{}'.format(host_1_name, host_2_name))
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
 
     if '\n'.join(res_qos) != '\n'.join(res_ce_qos):
         
-        html_path = os.path.join('检查结果', '{}与CE3.log qos对比检查结果.html'.format(host_1_name))
-        err += '{}与CE3.log qos 对比不一致，请查看 {}\n'.format(host_1_name, os.path.join(os.getcwd(), html_path))
+        html_path = os.path.join(file_path, '{}与JS-NJ-GL-CE-3.CDMA.log qos对比检查结果.html'.format(host_1_name))
+        err += '{}与JS-NJ-GL-CE-3.CDMA.log qos 对比不一致，请查看 {}\n'.format(host_1_name, os.path.join(os.getcwd(), html_path))
 
         with open(html_path,'w') as fo:
             fo.write(hd.make_file('\n'.join(res_qos).split('\n'), '\n'.join(res_ce_qos).split('\n')))
             fo.close()
 
     if '\n'.join(res_qos2) != '\n'.join(res_ce_qos):
-        html_path = os.path.join('检查结果', '{}与CE3.log qos对比检查结果.html'.format(host_2_name))
-        err += '{}与CE3.log qos 对比不一致，请查看 {}\n'.format(host_2_name, os.path.join(os.getcwd(), html_path))
+        html_path = os.path.join(file_path, '{}与JS-NJ-GL-CE-3.CDMA.log qos对比检查结果.html'.format(host_2_name))
+        err += '{}与JS-NJ-GL-CE-3.CDMA.log qos 对比不一致，请查看 {}\n'.format(host_2_name, os.path.join(os.getcwd(), html_path))
         with open(html_path,'w') as fo:
             fo.write(hd.make_file('\n'.join(res_qos2).split('\n'), '\n'.join(res_ce_qos).split('\n')))
             fo.close()
-
-    # config_qos_1_lines = res_qos[0].split('\n')
-    # config_qos_2_lines = res_qos[1].split('\n')
-
-    # ce3_qos_1_lines = res_qos2[0].split('\n')
-    # ce3_qos_2_lines = res_qos2[1].split('\n')
-
-    # config1_qos1_line = config_1_lines.index('    qos')
-    # config1_qos2_line = config_1_lines.index('    qos', config1_qos1_line + 1)
-
-    # # ce3_qos1_line = config_1_lines.index('    qos')
-    # # ce3_qos2_line = config_1_lines.index('    qos', ce3_qos1_line + 1)
-
-    # for i, line in enumerate(config_qos_1_lines):
-    #     if line != ce3_qos_1_lines[i]:
-    #         diff_qos_1_line = config_1_lines.index(line, config1_qos1_line + i)
-    #         err = 'QoS Policy Configuration 对比 JS-NJ-GL-CE-3.CDMA 第 {} 行不一致\n\n设备1：{}\n\nCE3：{}\n\n'.format(diff_qos_1_line + 1, line, ce3_qos_1_lines[i])
-    #         break
-
-    # for i, line in enumerate(config_qos_2_lines):
-    #     if line != ce3_qos_2_lines[i]:
-    #         diff_qos_2_line = config_1_lines.index(line, config1_qos2_line + i)
-    #         if err == '':
-    #             err += 'QoS Policy Configuration 对比 JS-NJ-GL-CE-3.CDMA '
-    #         err += '第 {} 行不一致\n\n设备1：{}\n\nCE3：{}\n\n'.format(diff_qos_2_line + 1, line, ce3_qos_2_lines[i])
-    #         break
-    
     
     if err == '':
         err = '检查通过'
@@ -238,12 +210,15 @@ def policy_options(config, config2):
     res_policy_options = re.search(p_policy_options, config)
     res_policy_options2 = re.search(p_policy_options, config2)
 
+    host_1_name = get_host_name(config)
+    host_2_name = get_host_name(config2)
+
     if not res_policy_options:
-        err = '设备1 中没有找到policy-options，请检查'
+        err = '{} 中没有找到policy-options，请检查'.format(host_1_name)
         return err
 
     if not res_policy_options2:
-        err = '设备2 中没有找到policy-options，请检查'
+        err = '{} 中没有找到policy-options，请检查'.format(host_2_name)
         return err
 
     p_prefix_list = r'(?s)((prefix-list ".*?")\n {16}prefix.*?\n {12}exit)'
@@ -252,11 +227,11 @@ def policy_options(config, config2):
     res_prefix_list2 = re.findall(p_prefix_list, res_policy_options2.group())
 
     if res_prefix_list == []:
-        err = '设备1 policy-options 中没有找到 prefix-list，请检查\n'
+        err = '{} policy-options 中没有找到 prefix-list，请检查\n'.format(host_1_name)
         return err
 
     if res_prefix_list2 == []:
-        err = '设备2 policy-options 中没有找到 prefix-list，请检查\n'
+        err = '{} policy-options 中没有找到 prefix-list，请检查\n'.format(host_2_name)
         return err
 
 
@@ -264,7 +239,7 @@ def policy_options(config, config2):
     for item in res_prefix_list:
         res_address = re.findall(p_address, item[0])
         if res_address == []:
-            err += '设备1 policy-options {} 中没有发现地址，请检查'.format(item[1])
+            err += '{} policy-options {} 中没有发现地址，请检查'.format(host_1_name, item[1])
             continue
 
 
@@ -277,7 +252,7 @@ def policy_options(config, config2):
                     return err
 
                 if sorted(res_address) != sorted(res_address2):
-                    err += '设备1和设备2 中的 {} 地址不一致，请检查\n'.format(item[1])
+                    err += '{}和{} 中的 {} 地址不一致，请检查\n'.format(host_1_name,host_2_name, item[1])
 
                 break
 
@@ -292,42 +267,77 @@ def policy_options(config, config2):
         res_exact_address = re.findall(p_exact_address, item[0])
         for item2 in res_exact_address:
             if 'static-route-entry {}'.format(item2) not in config:
-                err += '{} 中的 {} 没有对应 static-route-entry，请检查\n'.format(item[1], item2)
+                err += '{} {} 中的 {} 没有对应 static-route-entry，请检查\n'.format(host_1_name, item[1], item2)
 
     if err == '':
         err = '检查通过'
     return err
 
-def ip_filter_200(config1):
+def ip_filter_200(config1, config2):
     '''对比JS-NJ-GL-CE-3.CDMA（115.168.128.180），要求ip-filter 200完全一致
     interface下一行description中含有163的，在10行内要有filter ip 200'''
 
     err = ''
-    config2 = open('CE3.log').read()
+    config_ce = open('JS-NJ-GL-CE-3.CDMA.log').read()
     p_filter_ip_200 = r'(?s)(ip-filter 200 create\n.*?\n {8}exit)'
     res_filter_ip_200_1 = re.search(p_filter_ip_200, config1)
     res_filter_ip_200_2 = re.search(p_filter_ip_200, config2)
+    res_filter_ip_200_ce = re.search(p_filter_ip_200, config_ce)
+
+    host_1_name = get_host_name(config1)
+    host_2_name = get_host_name(config2)
 
     if not res_filter_ip_200_1:
-        err = '没有找到ip-filter 200，请检查\n'
+        err = '{}没有找到ip-filter 200，请检查\n'.format(host_1_name)
         return err
 
     if not res_filter_ip_200_2:
+        err = '{}没有找到ip-filter 200，请检查\n'.format(host_1_name)
+        return err
+
+    if not res_filter_ip_200_ce:
         err += 'JS-NJ-GL-CE-3.CDMA 中没有找到ip-filter 200，请检查\n'
         return err
 
-    if res_filter_ip_200_1.group() != res_filter_ip_200_2.group():
-        err += '配置与JS-NJ-GL-CE-3.CDMA中的ip-filter 200不一致\n'
+    hd = difflib.HtmlDiff()
+    file_path = os.path.join('检查结果', '{}和{}'.format(host_1_name, host_2_name))
+
+    if res_filter_ip_200_1.group() != res_filter_ip_200_ce.group():
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+
+        html_path = os.path.join(file_path, '{}与JS-NJ-GL-CE-3.CDMA.log ip-filter 200 对比检查结果.html'.format(host_1_name))
+        err += '{}与JS-NJ-GL-CE-3.CDMA中的ip-filter 200不一致，请查看{}\n'.format(host_1_name, os.path.join(os.getcwd(), html_path))
+
+        with open(html_path,'w') as fo:
+            fo.write(hd.make_file(res_filter_ip_200_1.group().split('\n'), res_filter_ip_200_ce.group().split('\n')))
+            fo.close()
+
+    if res_filter_ip_200_2.group() != res_filter_ip_200_ce.group():
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+
+        html_path = os.path.join(file_path, '{}与JS-NJ-GL-CE-3.CDMA.log ip-filter 200 对比检查结果.html'.format(host_2_name))
+        err += '{}与JS-NJ-GL-CE-3.CDMA中的ip-filter 200不一致，请查看{}\n'.format(host_2_name, os.path.join(os.getcwd(), html_path))
+
+        with open(html_path,'w') as fo:
+            fo.write(hd.make_file(res_filter_ip_200_2.group().split('\n'), res_filter_ip_200_ce.group().split('\n')))
+            fo.close()
+
 
     
     p_interface = r'(?s)(interface "(.*?)".*?\n {12}exit)'
 
     res_interface = re.findall(p_interface, config1)
+    res_interface_2 = re.findall(p_interface, config2)
 
     if res_interface == []:
-        err = '没有找到interface，请检查\n'
+        err += '{}没有找到interface，请检查\n'.format(host_1_name)
         return err
 
+    if res_interface_2 == []:
+        err += '{}没有找到interface，请检查\n'.format(host_2_name)
+        return err
 
     for item in res_interface:
         p_description = r'description ".*?"'
@@ -344,7 +354,24 @@ def ip_filter_200(config1):
                     enter_index = index
 
             if item[0].find('filter ip 200', 0, enter_index) == -1:
-                err += 'interface "{}" 没有filter ip 200 请检查\n'.format(item[1])
+                err += '{} interface "{}" 没有filter ip 200 请检查\n'.format(host_1_name ,item[1])
+
+    for item in res_interface_2:
+        p_description = r'description ".*?"'
+
+        res_description = re.search(p_description, item[0])
+        if res_description and '163' in res_description.group():
+            enter_index = 0
+            for i in range(11):
+                index = item[0].find('\n', enter_index + 1)
+
+                if index == -1:
+                    break
+                else:
+                    enter_index = index
+
+            if item[0].find('filter ip 200', 0, enter_index) == -1:
+                err += '{} interface "{}" 没有filter ip 200 请检查\n'.format(host_2_name, item[1])
 
     if err == '':
         err = '检查通过'
@@ -401,12 +428,15 @@ def policy_options_diff(config, config2):
     res_policy_options_config_1 = re.search(p_policy_options, config)
     res_policy_options_config_2 = re.search(p_policy_options, config2)
 
+    host_1_name = get_host_name(config)
+    host_2_name = get_host_name(config2)
+
     if not res_policy_options_config_1:
-        err = '设备一没有找到policy-options，请检查'
+        err = '{}没有找到policy-options，请检查'.format(host_1_name)
         return err
 
     if not res_policy_options_config_2:
-        err = '设备二没有找到policy-options，请检查'
+        err = '{}没有找到policy-options，请检查'.format(host_2_name)
         return err
 
     if res_policy_options_config_1.group() == res_policy_options_config_2.group():
@@ -415,21 +445,78 @@ def policy_options_diff(config, config2):
 
     hd = difflib.HtmlDiff()
 
-    host_1_name = get_host_name(config)
-    host_2_name = get_host_name(config2)
+    file_path = os.path.join('检查结果', '{}和{}'.format(host_1_name, host_2_name))
 
-    if not os.path.exists('检查结果'):
-        os.makedirs('检查结果')
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
 
-    html_path = os.path.join('检查结果', '{}与{}路由发布对比检查结果.html'.format(host_1_name, host_2_name))
+    html_path = os.path.join(file_path, '{}与{}路由发布对比检查结果.html'.format(host_1_name, host_2_name))
 
     with open(html_path,'w') as fo:
         fo.write(hd.make_file(res_policy_options_config_1.group().split('\n'), res_policy_options_config_2.group().split('\n')))
         fo.close()
 
-    err += '路由发布对比不一致，请打开 {} 查看\n'.format(os.path.join(os.getcwd(),html_path))
+    err += '{}与{}路由发布对比不一致，请打开 {} 查看\n'.format(host_1_name, host_2_name, os.path.join(os.getcwd(),html_path))
 
     return err
+
+def cpm_filter_check(config1, config2):
+    '''System Security Cpm下，一对CE配置要求一致（system地址除外）'''
+    
+    err = ''
+    p_cpm_filter = r'(?s)(echo "System Security Cpm Hw Filters, PKI, TLS and LDAP Configuration"\n.*?\n {4}exit)'
+    p_system_address = r'(?s)(interface "system"\n {12}address (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\w\w))'
+
+    res_config_1_cpm_filter = re.search(p_cpm_filter, config1)
+    res_config_2_cpm_filter = re.search(p_cpm_filter, config2)
+    res_config_1_system_address = re.search(p_system_address, config1)
+    res_config_2_system_address = re.search(p_system_address, config2)
+
+    host_1_name = get_host_name(config1)
+    host_2_name = get_host_name(config2)
+
+    if not res_config_1_cpm_filter:
+        err = '{}中没有找到System Security Cpm请检查'.format(host_1_name)
+        return err
+
+    if not res_config_2_cpm_filter:
+        err = '{}中没有找到System Security Cpm请检查'.format(host_2_name)
+        return err
+
+    if not res_config_1_system_address:
+        err = '{}中没有找到System 地址请检查'.format(host_2_name)
+        return err
+
+    if not res_config_2_system_address:
+        err = '{}中没有找到System 地址请检查'.format(host_2_name)
+        return err
+    
+
+    config_1_cpm_filter = res_config_1_cpm_filter.group().replace(res_config_1_system_address.group(2), res_config_1_system_address.group(2) + ' #python标注system地址')
+    config_2_cpm_filter = res_config_2_cpm_filter.group().replace(res_config_2_system_address.group(2), res_config_2_system_address.group(2) + ' #python标注system地址')
+
+
+    if config_1_cpm_filter != config_2_cpm_filter:
+
+        hd = difflib.HtmlDiff()
+
+        file_path = os.path.join('检查结果', '{}和{}'.format(host_1_name, host_2_name))
+
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+
+        html_path = os.path.join(file_path, '{}与{} cpm-filter对比检查结果.html'.format(host_1_name, host_2_name))
+        err += '{}与{} cpm-filter 对比不一致，请打开 {} 查看\n'.format(host_1_name, host_2_name, os.path.join(os.getcwd(),html_path))
+
+        with open(html_path,'w', encoding='utf-8') as fo:
+            fo.write(hd.make_file(config_1_cpm_filter.split('\n'), config_2_cpm_filter.split('\n')))
+            fo.close()
+
+    if err == '':
+        err = '检查通过'
+
+    return err
+    
 
 def get_host_name(config):
     '''获取设备名称'''
