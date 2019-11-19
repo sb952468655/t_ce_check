@@ -1,5 +1,6 @@
-import re
+import re, os
 import difflib
+
 
 
 def ssh(config):
@@ -46,18 +47,19 @@ def ftp(config):
     return err
 
 
-def qos(config1):
+def qos(config1,config2):
     '''echo "QoS Policy Configuration"，对比JS-NJ-GL-CE-3.CDMA（115.168.128.180）'''
 
     err = ''
-    config2 = open('CE3.log').read()
+    config_ce = open('CE3.log').read()
     p_qos = r'''(?s)(qos\n.*?\n {4}exit)'''
 
-    config_1_lines = config1.split('\n')
-    ce3_lines = config2.split('\n')
+    # config_1_lines = config1.split('\n')
+    # ce3_lines = config2.split('\n')
 
     res_qos = re.findall(p_qos, config1)
     res_qos2 = re.findall(p_qos, config2)
+    res_ce_qos = re.findall(p_qos, config_ce)
 
     if not res_qos:
         err = '配置1中没有找到 QoS Policy Configuration 请检查'
@@ -67,31 +69,55 @@ def qos(config1):
         err = '配置2中没有找到 QoS Policy Configuration 请检查'
         return err
 
-    config_qos_1_lines = res_qos[0].split('\n')
-    config_qos_2_lines = res_qos[1].split('\n')
+    hd = difflib.HtmlDiff()
 
-    ce3_qos_1_lines = res_qos2[0].split('\n')
-    ce3_qos_2_lines = res_qos2[1].split('\n')
+    host_1_name = get_host_name(config1)
+    host_2_name = get_host_name(config2)
 
-    config1_qos1_line = config_1_lines.index('    qos')
-    config1_qos2_line = config_1_lines.index('    qos', config1_qos1_line + 1)
+    if not os.path.exists('检查结果'):
+        os.makedirs('检查结果')
 
-    # ce3_qos1_line = config_1_lines.index('    qos')
-    # ce3_qos2_line = config_1_lines.index('    qos', ce3_qos1_line + 1)
+    if '\n'.join(res_qos) != '\n'.join(res_ce_qos):
+        
+        html_path = os.path.join('检查结果', '{}与CE3.log qos对比检查结果.html'.format(host_1_name))
+        err += '{}与CE3.log qos 对比不一致，请查看 {}\n'.format(host_1_name, os.path.join(os.getcwd(), html_path))
 
-    for i, line in enumerate(config_qos_1_lines):
-        if line != ce3_qos_1_lines[i]:
-            diff_qos_1_line = config_1_lines.index(line, config1_qos1_line + i)
-            err = 'QoS Policy Configuration 对比 JS-NJ-GL-CE-3.CDMA 第 {} 行不一致\n\n设备1：{}\n\nCE3：{}\n\n'.format(diff_qos_1_line + 1, line, ce3_qos_1_lines[i])
-            break
+        with open(html_path,'w') as fo:
+            fo.write(hd.make_file('\n'.join(res_qos).split('\n'), '\n'.join(res_ce_qos).split('\n')))
+            fo.close()
 
-    for i, line in enumerate(config_qos_2_lines):
-        if line != ce3_qos_2_lines[i]:
-            diff_qos_2_line = config_1_lines.index(line, config1_qos2_line + i)
-            if err == '':
-                err += 'QoS Policy Configuration 对比 JS-NJ-GL-CE-3.CDMA '
-            err += '第 {} 行不一致\n\n设备1：{}\n\nCE3：{}\n\n'.format(diff_qos_2_line + 1, line, ce3_qos_2_lines[i])
-            break
+    if '\n'.join(res_qos2) != '\n'.join(res_ce_qos):
+        html_path = os.path.join('检查结果', '{}与CE3.log qos对比检查结果.html'.format(host_2_name))
+        err += '{}与CE3.log qos 对比不一致，请查看 {}\n'.format(host_2_name, os.path.join(os.getcwd(), html_path))
+        with open(html_path,'w') as fo:
+            fo.write(hd.make_file('\n'.join(res_qos2).split('\n'), '\n'.join(res_ce_qos).split('\n')))
+            fo.close()
+
+    # config_qos_1_lines = res_qos[0].split('\n')
+    # config_qos_2_lines = res_qos[1].split('\n')
+
+    # ce3_qos_1_lines = res_qos2[0].split('\n')
+    # ce3_qos_2_lines = res_qos2[1].split('\n')
+
+    # config1_qos1_line = config_1_lines.index('    qos')
+    # config1_qos2_line = config_1_lines.index('    qos', config1_qos1_line + 1)
+
+    # # ce3_qos1_line = config_1_lines.index('    qos')
+    # # ce3_qos2_line = config_1_lines.index('    qos', ce3_qos1_line + 1)
+
+    # for i, line in enumerate(config_qos_1_lines):
+    #     if line != ce3_qos_1_lines[i]:
+    #         diff_qos_1_line = config_1_lines.index(line, config1_qos1_line + i)
+    #         err = 'QoS Policy Configuration 对比 JS-NJ-GL-CE-3.CDMA 第 {} 行不一致\n\n设备1：{}\n\nCE3：{}\n\n'.format(diff_qos_1_line + 1, line, ce3_qos_1_lines[i])
+    #         break
+
+    # for i, line in enumerate(config_qos_2_lines):
+    #     if line != ce3_qos_2_lines[i]:
+    #         diff_qos_2_line = config_1_lines.index(line, config1_qos2_line + i)
+    #         if err == '':
+    #             err += 'QoS Policy Configuration 对比 JS-NJ-GL-CE-3.CDMA '
+    #         err += '第 {} 行不一致\n\n设备1：{}\n\nCE3：{}\n\n'.format(diff_qos_2_line + 1, line, ce3_qos_2_lines[i])
+    #         break
     
     
     if err == '':
@@ -261,7 +287,7 @@ def policy_options(config, config2):
     #找到有exact的address
     p_exact_address = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}|[a-z0-9]{1,4}:[a-z0-9]{1,4}:[a-z0-9]{1,4}::[a-z0-9]{0,4}/\d{1,3}) exact'
     for item in res_prefix_list:
-        if item[1].endswith('-IN"'):
+        if item[1].endswith('-IN"') or item[1].endswith('-in"'):
             continue
         res_exact_address = re.findall(p_exact_address, item[0])
         for item2 in res_exact_address:
@@ -389,13 +415,33 @@ def policy_options_diff(config, config2):
 
     hd = difflib.HtmlDiff()
 
-    with open('路由发布对比.html','w') as fo:
+    host_1_name = get_host_name(config)
+    host_2_name = get_host_name(config2)
+
+    if not os.path.exists('检查结果'):
+        os.makedirs('检查结果')
+
+    html_path = os.path.join('检查结果', '{}与{}路由发布对比检查结果.html'.format(host_1_name, host_2_name))
+
+    with open(html_path,'w') as fo:
         fo.write(hd.make_file(res_policy_options_config_1.group().split('\n'), res_policy_options_config_2.group().split('\n')))
         fo.close()
 
-    err += '路由发布对比不一致，请打开（工具所在目录）：路由发布对比.html 查看\n'
+    err += '路由发布对比不一致，请打开 {} 查看\n'.format(os.path.join(os.getcwd(),html_path))
 
     return err
+
+def get_host_name(config):
+    '''获取设备名称'''
+
+    p_host_name = r'(?s)(system\n {8}name "(.*?)")'
+    res_host_name = re.search(p_host_name, config)
+    if not res_host_name:
+        host_name = ''
+    else:
+        host_name = res_host_name.group(2)
+
+    return host_name
 
 
 

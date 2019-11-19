@@ -40,12 +40,12 @@ class App(tk.Frame):
 
     def import_config(self):
         self.filename = filedialog.askopenfilename()
-        self.config_1_name = os.path.basename(self.filename)
         self.res_text.delete(0.0,tk.END)
         #读取配置
         f = open(self.filename)
         try:
             self.config = f.read()
+            self.config_1_name = get_host_name(self.config)
         except UnicodeDecodeError:
             msg.showerror('错误', '配置1编码错误，编码必须为UTF-8')
             self.config = None
@@ -54,12 +54,12 @@ class App(tk.Frame):
 
     def import2(self):
         self.filename2 = filedialog.askopenfilename()
-        self.config_2_name = os.path.basename(self.filename2)
         self.res_text.delete(0.0,tk.END)
         #读取配置
         f = open(self.filename2)
         try:
             self.config2 = f.read()
+            self.config_2_name = get_host_name(self.config2)
         except UnicodeDecodeError:
             msg.showerror('错误', '配置2编码错误，编码必须为UTF-8')
             self.config2 = None
@@ -73,8 +73,7 @@ class App(tk.Frame):
         if not os.path.exists('检查结果'):
             os.makedirs('检查结果')
 
-        host_name = self.get_host_name(self.config).split('.')[0]
-        self.save_name = os.path.join('检查结果', host_name + '检查.log')
+        self.save_name = os.path.join('检查结果', '{}与{}检查结果.log'.format(self.config_1_name, self.config_2_name))
         with open(self.save_name, 'w', encoding='utf-8') as f:
             f.write(self.res_text.get("0.0", "end"))
 
@@ -96,8 +95,8 @@ class App(tk.Frame):
         err_text += self.config_2_name + '\n\n' + ssh(self.config2) + '\n\n\n\n\n\n'
         err_text += '2、ftp\n\n' + self.config_1_name + '\n\n' + ftp(self.config) + '\n\n'
         err_text += self.config_2_name + '\n\n' + ftp(self.config2) + '\n\n\n\n\n\n'
-        err_text += '3、qos\n\n' + self.config_1_name + '\n\n' + qos(self.config) + '\n\n'
-        err_text += self.config_2_name + '\n\n' + qos(self.config2) + '\n\n\n\n\n\n'
+        err_text += '3、qos\n\n' + qos(self.config, self.config2) + '\n\n'
+        # err_text += self.config_2_name + '\n\n' + qos(self.config2) + '\n\n\n\n\n\n'
         err_text += '4、isis bfd\n\n' + self.config_1_name + '\n\n' + isis_bfd(self.config) + '\n\n'
         err_text += self.config_2_name + '\n\n' + isis_bfd(self.config2) + '\n\n\n\n\n\n'
         err_text += '5、static-route bfd\n\n' + self.config_1_name + '\n\n' + static_route_bfd(self.config) + '\n\n'
@@ -107,7 +106,7 @@ class App(tk.Frame):
         err_text += '7、policy-options\n\n' + policy_options(self.config, self.config2) + '\n\n\n\n\n\n'
         err_text += '8、ip-filter 200限制\n\n' + self.config_1_name + '\n\n' + ip_filter_200(self.config) + '\n\n'
         err_text += self.config_2_name + '\n\n' + ip_filter_200(self.config2) + '\n\n\n\n\n\n'
-        err_text += '9、垃圾静态路由检查\n\n' + '设备一检查命令脚本\n\n' + vprn_static_route_check(self.config) + '\n设备二检查命令脚本\n\n' + vprn_static_route_check(self.config2) + '\n\n\n\n\n\n'
+        err_text += '9、垃圾静态路由检查\n\n' + self.config_1_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config) + '\n' + self.config_2_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config2) + '\n\n\n\n\n\n'
         err_text += '10、路由发布对比\n\n' + policy_options_diff(self.config, self.config2)
         self.res_text.insert(tk.END, err_text)
 
@@ -120,22 +119,10 @@ class App(tk.Frame):
     def check_ce3(self):
         return os.path.exists('CE3.log')
 
-    def get_host_name(self, config):
-        '''获取设备名称'''
-
-        p_host_name = r'(?s)(system\n {8}name "(.*?)")'
-        res_host_name = re.search(p_host_name, config)
-        if not res_host_name:
-            host_name = ''
-        else:
-            host_name = res_host_name.group(2)
-
-        return host_name
-
 
 root = tk.Tk()
 root.geometry('700x380+500+200')
-root.title('电信CE配置检查 V1.1.5')
+root.title('电信CE配置检查 V1.1.9')
 # root.resizable(0,0)
 myapp = App(master=root)
 myapp.mainloop()
