@@ -2,17 +2,15 @@ import re, os
 import difflib
 
 
-
 def ssh(config):
     '''ssh下一行要检测到server-shutdown'''
+
     err = ''
     p_ssh = r'''ssh\n                server-shutdown'''
-
     res_ssh = re.search(p_ssh, config)
 
     if not res_ssh:
         err = 'ssh下一行没有检测到server-shutdown'
-    
     if err == '':
         err = '检查通过'
 
@@ -38,7 +36,6 @@ def ftp(config):
             enter_index = index
 
     ftp_index = config.find('ftp', system_index, enter_index)
-
     if ftp_index != -1:
         err = 'System Security Configuration 中存在 ftp'
 
@@ -180,20 +177,7 @@ def bgp_bfd(config):
         err = 'BGP Configuration 中没有找到 group 请检查'
         return err
 
-
     for item in res_group:
-        # enter_index = 0
-        # for i in range(16):
-        #     index = item[0].find('\n', enter_index + 1)
-        #     if index == -1:
-        #         break
-        #     else:
-        #         enter_index = index
-
-
-
-        # bfd_enable_index = item[0].find('bfd-enable', 0, enter_index)
-
         if 'bfd-enable' not in item[0]:
             err += 'BGP Configuration {} 中没有发现bfd-enable\n'.format(item[1])
 
@@ -252,7 +236,24 @@ def policy_options(config, config2):
                     return err
 
                 if sorted(res_address) != sorted(res_address2):
-                    err += '{}和{} 中的 {} 地址不一致，请检查\n'.format(host_1_name,host_2_name, item[1])
+
+                    address_1_more = []
+                    address_2_more = []
+
+                    for item3 in res_address:
+                        if item3 not in res_address2:
+                            address_1_more.append(item3)
+
+                    for item3 in res_address2:
+                        if item3 not in res_address:
+                            address_2_more.append(item3)
+
+                    err += '{}和{} 中的 {} 地址不一致，请检查\n\n'.format(host_1_name, host_2_name, item[1])
+                    if address_1_more:
+                        err += '{}比{} 多出的address\n\n{}\n\n'.format(host_1_name, host_2_name, '\n'.join(address_1_more))
+
+                    if address_2_more:
+                        err += '{}比{} 多出的address\n\n{}\n\n'.format(host_2_name, host_1_name, '\n'.join(address_2_more))
 
                 break
 
@@ -529,17 +530,3 @@ def get_host_name(config):
         host_name = res_host_name.group(2)
 
     return host_name
-
-
-
-
-
-
-
-
-
-
-
-
-
-
