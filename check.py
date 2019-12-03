@@ -408,14 +408,16 @@ def vprn_static_route_check(config):
     p_next_hop = r'next-hop (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 
     res_vprn = re.findall(p_vprn, config)
+    address = []
     for vprn in res_vprn:
         res_static_route = re.findall(p_static_route, vprn[0])
         for static_route in res_static_route:
             if 'next-hop' in static_route[0] and 'black-hole' not in static_route[0]:
                 res_next_hop = re.search(p_next_hop, static_route[0])
-                if res_next_hop:
+                if res_next_hop and res_next_hop.group(1) not in address:
+                    address.append(res_next_hop.group(1))
                     err += 'ping router {} {}\nshow router {} route-table {}\n'.format(vprn[1], res_next_hop.group(1)
-                    , vprn[1], static_route[1])
+                    , vprn[1], res_next_hop.group(1))
 
 
     return err

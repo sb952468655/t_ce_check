@@ -123,7 +123,7 @@ class App(tk.Frame):
 
 root = tk.Tk()
 root.geometry('700x380+500+200')
-root.title('电信CE配置检查 V1.1.12')
+root.title('电信CE配置检查 V1.1.13')
 # root.resizable(0,0)
 myapp = App(master=root)
 myapp.mainloop()
