@@ -106,7 +106,6 @@ class App(tk.Frame):
         err_text += '8、路由发布对比\n\n' + policy_options_diff(self.config, self.config2) + '\n\n\n\n\n\n'
         err_text += '9、cpm-filter\n\n' + cpm_filter_check(self.config, self.config2) + '\n\n\n\n\n\n'
         err_text += '10、ip-filter 200限制\n\n' +  ip_filter_200(self.config, self.config2) + '\n\n\n\n\n\n'
-        # err_text += self.config_2_name + '\n\n' + ip_filter_200(self.config2) + '\n\n\n\n\n\n'
         err_text += '11、垃圾静态路由检查\n\n' + self.config_1_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config) + '\n' \
             + self.config_2_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config2) + '\n\n\n\n\n\n'
         self.res_text.insert(tk.END, err_text)
