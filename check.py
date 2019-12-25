@@ -275,7 +275,7 @@ def policy_options(config, config2):
             continue
         res_exact_address = re.findall(p_exact_address, item[0])
         for item2 in res_exact_address:
-            if 'static-route-entry {}'.format(item2) not in config:
+            if 'static-route-entry {}'.format(item2) not in config2:
                 err += '{} {} 中的 {} 没有对应 static-route-entry，请检查\n'.format(host_2_name, item[1], item2)
 
     if err == '':
