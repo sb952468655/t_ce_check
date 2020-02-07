@@ -92,24 +92,6 @@ class App(tk.Frame):
             return
 
         err_text = all_check(self.config, self.config2)
-        # err_text =  '1、ssh\n\n' + self.config_1_name + '\n\n' + ssh(self.config) + '\n\n'
-        # err_text += self.config_2_name + '\n\n' + ssh(self.config2) + '\n\n\n\n\n\n'
-        # err_text += '2、ftp\n\n' + self.config_1_name + '\n\n' + ftp(self.config) + '\n\n'
-        # err_text += self.config_2_name + '\n\n' + ftp(self.config2) + '\n\n\n\n\n\n'
-        # err_text += '3、qos\n\n' + qos(self.config, self.config2) + '\n\n\n\n\n\n'
-        # err_text += '4、isis bfd\n\n' + self.config_1_name + '\n\n' + isis_bfd(self.config) + '\n\n'
-        # err_text += self.config_2_name + '\n\n' + isis_bfd(self.config2) + '\n\n\n\n\n\n'
-        # err_text += '5、static-route bfd\n\n' + self.config_1_name + '\n\n' + static_route_bfd(self.config) + '\n\n'
-        # err_text += self.config_2_name + '\n\n' + static_route_bfd(self.config2) + '\n\n\n\n\n\n'
-        # err_text += '6、bgp bfd\n\n' + self.config_1_name + '\n\n' + bgp_bfd(self.config) + '\n\n'
-        # err_text += self.config_2_name + '\n\n' + bgp_bfd(self.config2) + '\n\n\n\n\n\n'
-        # err_text += '7、policy-options\n\n' + policy_options(self.config, self.config2) + '\n\n\n\n\n\n'
-        # err_text += '8、路由发布对比\n\n' + policy_options_diff(self.config, self.config2) + '\n\n\n\n\n\n'
-        # err_text += '9、cpm-filter\n\n' + cpm_filter_check(self.config, self.config2) + '\n\n\n\n\n\n'
-        # err_text += '10、ip-filter 200限制\n\n' +  ip_filter_200(self.config, self.config2) + '\n\n\n\n\n\n'
-        # err_text += '11、垃圾静态路由检查\n\n' + self.config_1_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config) + '\n' \
-        #     + self.config_2_name + ' 检查命令脚本\n\n' + vprn_static_route_check(self.config2) + '\n\n\n\n\n\n'
-        # err_text += '12、静态路由错误配置检查\n\n' + check_static_router(self.config, self.config2) + '\n\n\n\n\n\n'
         self.res_text.insert(tk.END, err_text)
 
 
@@ -124,7 +106,7 @@ class App(tk.Frame):
 
 root = tk.Tk()
 root.geometry('700x380+500+200')
-root.title('电信CE配置检查 V1.1.21')
+root.title('电信CE配置检查 V1.1.24')
 # root.resizable(0,0)
 myapp = App(master=root)
 myapp.mainloop()

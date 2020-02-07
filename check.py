@@ -5,42 +5,54 @@ def ssh(config):
     '''ssh下一行要检测到server-shutdown'''
 
     err = ''
-    p_ssh = r'''ssh\n                server-shutdown'''
+    # p_ssh = r'''ssh\n                server-shutdown'''
+    p_ssh = r'(?s)ssh\n.*?\n {12}exit'
     res_ssh = re.search(p_ssh, config)
 
-    if not res_ssh:
-        err = 'ssh下一行没有检测到server-shutdown'
+    if res_ssh:
+        ssh_lines = res_ssh.group().splitlines()
+        if ssh_lines[1] != '                server-shutdown':
+            err = 'ssh下一行没有检测到server-shutdown'
+
+            #在log中标记错误
+            flag_str = ssh_lines[0] + '\n +                server-shutdown\n' + '\n'.join(ssh_lines[1:])
+            config = config.replace(res_ssh.group(), flag_str)
+    else:
+        err = '没有找到ssh配置，请检查'
+
     if err == '':
         err = '检查通过'
 
-    return err
+    if '                server-shutdown' in config:
+        print('OK')
+    else:
+        print('Err')
+
+    return err, config
 
 
 def ftp(config):
     '''System Security Configuration下5行内，检测不到ftp'''
 
     err = ''
-    system_index = config.find('System Security Configuration')
+    p_system_security_configuration = '(?s)echo "System Security Configuration"\n#-{50}\n.*?\n#-{50}'
 
-    if system_index == -1:
-        err = '没有找到 System Security Configuration'
-        return
+    res_system_security_configuration = re.search(p_system_security_configuration, config)
+    if res_system_security_configuration:
+        str_lines = res_system_security_configuration.group().splitlines()
+        for i in str_lines[:6]:
+            if 'ftp-server' in i:
+                err = 'System Security Configuration 中存在 ftp'
 
-    enter_index = system_index
-    for i in range(6):
-        index = config.find('\n', enter_index + 1)
-        if index == -1:
-            break
-        else:
-            enter_index = index
-
-    ftp_index = config.find('ftp', system_index, enter_index)
-    if ftp_index != -1:
-        err = 'System Security Configuration 中存在 ftp'
+                #在log中标记错误
+                new_str = res_system_security_configuration.group().replace(i, ' -' + i)
+                config = config.replace(res_system_security_configuration.group(), new_str)
+    else:
+        err = '没有找到 System Security Configuration 请检查'
 
     if err == '':
         err = '检查通过'
-    return err
+    return err, config
 
 
 def qos(config1,config2):
@@ -85,7 +97,7 @@ def qos(config1,config2):
         # diff_str = re.sub(r'\n(\+|\-|\?)', r' \1', diff_str)
         diff_str = add_flag(diff_str)
         config3 = config1.replace(res_qos[0], diff_str, 1)
-        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA 对比检查结果.log'.format(host_1_name))
+        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_1_name, host_2_name))
         err += '{} 与 JS-NJ-GL-CE-3.CDMA qos1 对比不一致，请查看 {}\n'.format(host_1_name, log_path)
 
     if res_qos[1] != res_ce_qos[1]:
@@ -101,7 +113,7 @@ def qos(config1,config2):
         # diff_str = re.sub(r'\n(\+|\-|\?)', r' \1', diff_str)
         diff_str = add_flag(diff_str)
         config3 = config3.replace(res_qos[1], diff_str, 1)
-        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA 对比检查结果.log'.format(host_1_name))
+        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_1_name, host_2_name))
         err += '{} 与 JS-NJ-GL-CE-3.CDMA qos2 对比不一致，请查看 {}\n'.format(host_1_name, log_path)
 
     if res_qos2[0] != res_ce_qos[0]:
@@ -116,7 +128,7 @@ def qos(config1,config2):
         # diff_str = re.sub(r'\n(\+|\-|\?)', r' \1', diff_str)
         diff_str = add_flag(diff_str)
         config4 = config2.replace(res_qos2[0], diff_str, 1)
-        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA 对比检查结果.log'.format(host_2_name))
+        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_2_name, host_1_name))
         err += '{} 与 JS-NJ-GL-CE-3.CDMA qos 对比不一致，请查看 {}\n'.format(host_2_name, log_path)
 
     if res_qos2[1] != res_ce_qos[1]:
@@ -132,7 +144,7 @@ def qos(config1,config2):
         # diff_str = re.sub(r'\n(\+|\-|\?)', r' \1', diff_str)
         diff_str = add_flag(diff_str)
         config4 = config4.replace(res_qos2[1], diff_str, 1)
-        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA 对比检查结果.log'.format(host_2_name))
+        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_2_name, host_1_name))
         err += '{} 与 JS-NJ-GL-CE-3.CDMA qos2 对比不一致，请检查 {}\n'.format(host_2_name, log_path)
 
     
@@ -155,8 +167,6 @@ def isis_bfd(config):
         err = '没有找到ISIS Configuration，请检查'
         return err
 
-    a = res_isis.group()
-
     res_interface = re.findall(p_interface, res_isis.group())
     if res_interface == []:
         err = 'ISIS Configuration 中没有找到 interface，请检查'
@@ -169,9 +179,14 @@ def isis_bfd(config):
         if 'bfd-enable ipv4' not in item[0]:
             err += 'ISIS Configuration interface "{}" 中没有 bfd-enable ipv4\n'.format(item[1])
 
+            #标记错误
+            str_lines = item[0].splitlines()
+            new_str = '{}\n +                bfd-enable ipv4\n{}'.format('\n'.join(str_lines[:3]), '\n'.join(str_lines[3:]))
+            config = config.replace(item[0], new_str)
+
     if err == '':
         err = '检查通过'
-    return err
+    return err, config
 
 def static_route_bfd(config):
     '''echo "Static Route Configuration" 和 vprn 中，每个static-route-entry下有bfd-enable'''
@@ -196,6 +211,12 @@ def static_route_bfd(config):
         if 'bfd-enable' not in item[0] and 'black-hole' not in item[0]:
             err += 'Static Route Configuration {} 中没有找到bfd-enable，请检查\n'.format(item[1])
 
+            #在log中标记错误
+            str_lines = item[0].splitlines()
+            new_str = "{}\n{}\n{}\n{}".format(str_lines[0], str_lines[1], ' +                bfd-enable', '\n'.join(str_lines[2:]))
+            config = config.replace(item[0], new_str)
+
+
     res_vprn = re.findall(p_vprn, config)
     for vprn in res_vprn:
         res_vprn_static_route = re.findall(p_vprn_static_route, vprn[0])
@@ -203,9 +224,14 @@ def static_route_bfd(config):
             if 'bfd-enable' not in vprn_static_route[0] and 'black-hole' not in vprn_static_route[0]:
                 err += 'vprn {} {} 中没有找到bfd-enable，请检查\n'.format(vprn[1], vprn_static_route[1])
 
+                #标记错误
+                str_lines = vprn_static_route[0].splitlines()
+                new_str = "{}\n{}\n{}\n{}".format(str_lines[0], str_lines[1], ' +                    bfd-enable', '\n'.join(str_lines[2:]))
+                config = config.replace(vprn_static_route[0], new_str)
+
     if err == '':
         err = '检查通过'
-    return err
+    return err, config
 
 
 def bgp_bfd(config):
@@ -231,9 +257,20 @@ def bgp_bfd(config):
         if 'bfd-enable' not in item[0]:
             err += 'BGP Configuration {} 中没有发现bfd-enable\n'.format(item[1])
 
+            #标记错误
+            str_lines = item[0].splitlines()
+            new_str = ''
+            for i in str_lines:
+                if 'peer-as' in i:
+                    new_str += i + '\n +                    bfd-enable\n'
+                else:
+                    new_str += i + '\n'
+
+            config = config.replace(item[0], new_str)
+
     if err == '':
         err = '检查通过'
-    return err
+    return err, config
 
 def policy_options(config, config2):
     '''policy-options下prefix-list地址，一对CE要求地址完全一致
@@ -316,28 +353,39 @@ def policy_options(config, config2):
         if item[1].endswith('-IN"') or item[1].endswith('-in"'):
             continue
         res_exact_address = re.findall(p_exact_address, item[0])
+        new_prefix_str = item[0]
         for item2 in res_exact_address:
             if 'static-route-entry {}'.format(item2) not in config:
                 err += '{} {} 中的 {} 没有对应 static-route-entry，请检查\n'.format(host_1_name, item[1], item2)
+
+                #标记错误
+                new_prefix_str = new_prefix_str.replace('                prefix {} exact'.format(item2), ' q-s                prefix {} exact'.format(item2))
+
+        config = config.replace(item[0], new_prefix_str)
 
     for item in res_prefix_list2:
         if item[1].endswith('-IN"') or item[1].endswith('-in"'):
             continue
         res_exact_address = re.findall(p_exact_address, item[0])
+        new_prefix_str = item[0]
         for item2 in res_exact_address:
             if 'static-route-entry {}'.format(item2) not in config2:
                 err += '{} {} 中的 {} 没有对应 static-route-entry，请检查\n'.format(host_2_name, item[1], item2)
 
+                #标记错误
+                new_prefix_str = new_prefix_str.replace('                prefix {} exact'.format(item2), ' q-s                prefix {} exact'.format(item2))
+
+        config2 = config2.replace(item[0], new_prefix_str)
+
     if err == '':
         err = '检查通过'
-    return err
+    return err, config, config2
 
-def ip_filter_200(config1, config2, config3, config4):
+def ip_filter_200(config1, config2):
     '''对比JS-NJ-GL-CE-3.CDMA（115.168.128.180），要求ip-filter 200完全一致
     interface下一行description中含有163的，在10行内要有filter ip 200'''
 
     err = ''
-    # g_config_ce = open('JS-NJ-GL-CE-3.CDMA.log').read()
     config_ce = open('JS-NJ-GL-CE-3.CDMA.log').read()
     p_filter_ip_200 = r'(?s)(ip-filter 200 create.*?\n {8}exit)'
     res_filter_ip_200_1 = re.search(p_filter_ip_200, config1)
@@ -349,15 +397,15 @@ def ip_filter_200(config1, config2, config3, config4):
 
     if not res_filter_ip_200_1:
         err = '{}没有找到ip-filter 200，请检查\n'.format(host_1_name)
-        return err, config3, config4
+        return err, config1, config2
 
     if not res_filter_ip_200_2:
         err = '{}没有找到ip-filter 200，请检查\n'.format(host_1_name)
-        return err, config3, config4
+        return err, config1, config2
 
     if not res_filter_ip_200_ce:
         err += 'JS-NJ-GL-CE-3.CDMA 中没有找到ip-filter 200，请检查\n'
-        return err, config3, config4
+        return err, config1, config2
 
     if res_filter_ip_200_1.group() != res_filter_ip_200_ce.group():
         
@@ -369,10 +417,9 @@ def ip_filter_200(config1, config2, config3, config4):
         diff_str = "\n".join(list(diff))
 
         #在文件对比标识符： + - ? 前空格，以便区分
-        # diff_str = re.sub(r'\n(\+|\-|\?)', r' \1', diff_str)
         diff_str = add_flag(diff_str)
-        config3 = config3.replace(res_filter_ip_200_1.group(), diff_str, 1)
-        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA 对比检查结果.log'.format(host_1_name))
+        config1 = config1.replace(res_filter_ip_200_1.group(), diff_str, 1)
+        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_1_name, host_2_name))
         err += '{}与JS-NJ-GL-CE-3.CDMA中的ip-filter 200不一致，请查看 {}\n'.format(host_1_name, log_path)
 
     if res_filter_ip_200_2.group() != res_filter_ip_200_ce.group():
@@ -387,8 +434,8 @@ def ip_filter_200(config1, config2, config3, config4):
         #在文件对比标识符： + - ? 前空格，以便区分
         # diff_str = re.sub(r'\n(\+|\-|\?)', r' \1', diff_str)
         diff_str = add_flag(diff_str)
-        config4 = config4.replace(res_filter_ip_200_2.group(), diff_str, 1)
-        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA 对比检查结果.log'.format(host_2_name))
+        config2 = config2.replace(res_filter_ip_200_2.group(), diff_str, 1)
+        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_2_name, host_1_name))
         err += '{}与JS-NJ-GL-CE-3.CDMA中的ip-filter 200不一致，请查看 {}\n'.format(host_2_name, log_path)
 
     p_interface = r'(?s)(interface "(.*?)".*?\n {12}exit)'
@@ -398,11 +445,11 @@ def ip_filter_200(config1, config2, config3, config4):
 
     if res_interface == []:
         err += '{}没有找到interface，请检查\n'.format(host_1_name)
-        return err, config3, config4
+        return err, config1, config2
 
     if res_interface_2 == []:
         err += '{}没有找到interface，请检查\n'.format(host_2_name)
-        return err, config3, config4
+        return err, config1, config2
 
     for item in res_interface:
         p_description = r'description ".*?"'
@@ -421,6 +468,18 @@ def ip_filter_200(config1, config2, config3, config4):
             if item[0].find('filter ip 200', 0, enter_index) == -1:
                 err += '{} interface "{}" 没有filter ip 200 请检查\n'.format(host_1_name ,item[1])
 
+                #标记错误
+                str_lines = item[0].splitlines()
+                new_str = ''
+                for i in str_lines:
+                    if i.startswith('                sap'):
+                        filter_ip = '\n +                    ingress\n +                        filter ip 200\n +                    exit\n'
+                        new_str += i + filter_ip
+                    else:
+                        new_str += i + '\n'
+
+                config1 = config1.replace(item[0], new_str)
+
     for item in res_interface_2:
         p_description = r'description ".*?"'
 
@@ -438,9 +497,21 @@ def ip_filter_200(config1, config2, config3, config4):
             if item[0].find('filter ip 200', 0, enter_index) == -1:
                 err += '{} interface "{}" 没有filter ip 200 请检查\n'.format(host_2_name, item[1])
 
+                #标记错误
+                str_lines = item[0].splitlines()
+                new_str = ''
+                for i in str_lines:
+                    if i.startswith('                sap'):
+                        filter_ip = r''' +                    ingress\n +                        filter ip 200\n +                    exit\n'''
+                        new_str += i + filter_ip
+                    else:
+                        new_str += i + '\n'
+
+                config2 = config2.replace(item[0], new_str)
+
     if err == '':
         err = '检查通过'
-    return (err, config3, config4)
+    return (err, config1, config2)
 
 def prefix_static_route_check(config):
     '''检查prefix-list地址段中是否配置了黑洞路由'''
@@ -514,11 +585,8 @@ def policy_options_diff(config, config2):
         err = '路由发布对比一致\n'
         return err
 
-    file_path = os.path.join('检查结果', '{}和{}'.format(host_1_name, host_2_name))
-
-
     if res_policy_options_config_1.group() != res_policy_options_config_2.group():
-        html_path = os.path.join(file_path, '{}与{} 对比检查结果.html'.format(host_1_name, host_2_name))
+        html_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_1_name, host_2_name))
         err += '{}与{} policy-options 对比不一致，请打开 {} 查看\n'.format(host_1_name, host_2_name, os.path.join(os.getcwd(),html_path))
 
     if err == '':
@@ -558,14 +626,14 @@ def cpm_filter_check(config1, config2):
         return err
     
 
-    config_1_cpm_filter = res_config_1_cpm_filter.group().replace(res_config_1_system_address.group(2), res_config_1_system_address.group(2) + ' #python标注system地址')
-    config_2_cpm_filter = res_config_2_cpm_filter.group().replace(res_config_2_system_address.group(2), res_config_2_system_address.group(2) + ' #python标注system地址')
-
+    # config_1_cpm_filter = res_config_1_cpm_filter.group().replace(res_config_1_system_address.group(2), res_config_1_system_address.group(2) + ' #python标注system地址')
+    # config_2_cpm_filter = res_config_2_cpm_filter.group().replace(res_config_2_system_address.group(2), res_config_2_system_address.group(2) + ' #python标注system地址')
+    config_1_cpm_filter = res_config_1_cpm_filter.group()
+    config_2_cpm_filter = res_config_2_cpm_filter.group()
 
     if config_1_cpm_filter != config_2_cpm_filter:
 
-        file_path = os.path.join('检查结果', '{}和{}'.format(host_1_name, host_2_name))
-        html_path = os.path.join(file_path, '{}与{} 对比检查结果.html'.format(host_1_name, host_2_name))
+        html_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_1_name, host_2_name))
         err += '{}与{} cpm-filter 对比不一致，请打开 {} 查看\n'.format(host_1_name, host_2_name, os.path.join(os.getcwd(),html_path))
 
     if err == '':
@@ -577,43 +645,57 @@ def check_static_router(config, config2):
     '''静态路由错误配置检查'''
 
     err = ''
+    err_static_route = []
+    err_static_route_2 = []
     host_1_name = get_host_name(config)
     host_2_name = get_host_name(config2)
-    p_static_route = r'(static-route \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}( next-hop)? "black-hole" preference \d{1,3})'
-    p_static_route_2 = r'(?s)((static-route-entry \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2})( next-hop)? ?\n.*?\n {12}exit)'
+    p_static_route_configuration = r'(?s)(echo "Static Route Configuration"\n#-{50}.*?\n#-{50})'
+    p_static_route = r'( {8}static-route \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}( next-hop)? "black-hole" preference \d{1,3})'
+    p_static_route_2 = r'(?s)(( {8,12}static-route-entry \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2})( next-hop)? ?\n.*?\n {8,12}exit)'
 
-    res = re.findall(p_static_route, config)
-    res2 = re.findall(p_static_route, config2)
+    res_static_route_configuration = re.search(p_static_route_configuration, config)
+    res_static_route_configuration_2 = re.search(p_static_route_configuration, config2)
 
-    res_static_route = re.findall(p_static_route_2, config)
-    res_static_route_2 = re.findall(p_static_route_2, config2)
+    if res_static_route_configuration:
+        res = re.findall(p_static_route, res_static_route_configuration.group())
+        res_static_route = re.findall(p_static_route_2, config)
 
-    if res:
-        for i in res:
-            if 'next-hop' in i:
-                err += '{} 中的 {} 配置错误\n'.format(host_1_name, i[0])
+        if res:
+            for i in res:
+                if 'next-hop' in i:
+                    err_static_route.append(i[0])
+                    err += '{} 中的 {} 配置错误\n'.format(host_1_name, i[0])
 
-    if res2:
-        for i in res2:
-            if 'next-hop' in i:
-                err += '{} 中的 {} 配置错误\n'.format(host_2_name, i[0])
+        for i in res_static_route:
+            if ' next-hop' == i[2]:
+                err_static_route.append(i[0])
+                err += '{} 中的 {} 配置错误\n'.format(host_1_name, i[1].strip())
+            elif 'next-hop "black-hole"' in i[0]:
+                err_static_route.append(i[0])
+                err += '{} 中的 {} 配置错误\n'.format(host_1_name, i[1].strip())
 
-    for i in res_static_route:
-        if ' next-hop' == i[2]:
-                err += '{} 中的 {} 配置错误\n'.format(host_1_name, i[1])
-        elif 'next-hop "black-hole"' in i[0]:
-            err += '{} 中的 {} 配置错误\n'.format(host_1_name, i[1])
-    
-    for i in res_static_route_2:
-        if ' next-hop' == i[2]:
-            err += '{} 中的 {} 配置错误\n'.format(host_2_name, i[1])
-        elif 'next-hop "black-hole"' in i[0]:
-            err += '{} 中的 {} 配置错误\n'.format(host_2_name, i[1])
+    if res_static_route_configuration_2:
+        res2 = re.findall(p_static_route, res_static_route_configuration_2.group())
+        res_static_route_2 = re.findall(p_static_route_2, config2)
+
+        if res2:
+            for i in res2:
+                if 'next-hop' in i:
+                    err_static_route_2.append(i[0])
+                    err += '{} 中的 {} 配置错误\n'.format(host_2_name, i[0])
+        
+        for i in res_static_route_2:
+            if ' next-hop' == i[2]:
+                err_static_route_2.append(i[0])
+                err += '{} 中的 {} 配置错误\n'.format(host_2_name, i[1].strip())
+            elif 'next-hop "black-hole"' in i[0]:
+                err_static_route_2.append(i[0])
+                err += '{} 中的 {} 配置错误\n'.format(host_2_name, i[1].strip())
 
     if err == '':
         err = '检查通过'
     
-    return err
+    return err, err_static_route, err_static_route_2
 
 def all_check(config, config2):
     '''检查所有项'''
@@ -624,56 +706,116 @@ def all_check(config, config2):
     host_1_name = get_host_name(config)
     host_2_name = get_host_name(config2)
 
-    err_text = '1、ssh\n\n' + host_1_name + '\n\n' + ssh(config) + '\n\n'
-    err_text += host_2_name + '\n\n' + ssh(config2) + '\n\n\n\n\n\n'
-    err_text += '2、ftp\n\n' + host_1_name + '\n\n' + ftp(config) + '\n\n'
-    err_text += host_2_name + '\n\n' + ftp(config2) + '\n\n\n\n\n\n'
-    err, config3, config4 = qos(config, config2)
+    err, config3 = ssh(config)
+    err_text = '1、ssh\n\n' + host_1_name + '\n\n' + err + '\n\n'
+    err, config4 = ssh(config2)
+    err_text += host_2_name + '\n\n' + err + '\n\n\n\n\n\n'
+
+    err, config3 = ftp(config3)
+    err_text += '2、ftp\n\n' + host_1_name + '\n\n' + err + '\n\n'
+    err, config4 = ftp(config4)
+    err_text += host_2_name + '\n\n' + err + '\n\n\n\n\n\n'
+
+    err, config3, config4 = qos(config3, config4)
     err_text += '3、qos\n\n' + err + '\n\n\n\n\n\n'
-    err_text += '4、isis bfd\n\n' + host_1_name + '\n\n' + isis_bfd(config) + '\n\n'
-    err_text += host_2_name + '\n\n' + isis_bfd(config2) + '\n\n\n\n\n\n'
-    err_text += '5、static-route bfd\n\n' + host_1_name + '\n\n' + static_route_bfd(config) + '\n\n'
-    err_text += host_2_name + '\n\n' + static_route_bfd(config2) + '\n\n\n\n\n\n'
-    err_text += '6、bgp bfd\n\n' + host_1_name + '\n\n' + bgp_bfd(config) + '\n\n'
-    err_text += host_2_name + '\n\n' + bgp_bfd(config2) + '\n\n\n\n\n\n'
-    err_text += '7、policy-options\n\n' + policy_options(config, config2) + '\n\n\n\n\n\n'
+
+    err, config3 = isis_bfd(config3)
+    err_text += '4、isis bfd\n\n' + host_1_name + '\n\n' + err + '\n\n'
+    err, config4 = isis_bfd(config4)
+    err_text += host_2_name + '\n\n' + err + '\n\n\n\n\n\n'
+
+    err, config3 = static_route_bfd(config3)
+    err_text += '5、static-route bfd\n\n' + host_1_name + '\n\n' + err + '\n\n'
+    err, config4 = static_route_bfd(config4)
+    err_text += host_2_name + '\n\n' + err + '\n\n\n\n\n\n'
+
+    err, config3 = bgp_bfd(config3)
+    err_text += '6、bgp bfd\n\n' + host_1_name + '\n\n' + err + '\n\n'
+    err, config4 = bgp_bfd(config4)
+    err_text += host_2_name + '\n\n' + err + '\n\n\n\n\n\n'
+
+    err, config3, config4 = policy_options(config3, config4)
+    err_text += '7、policy-options\n\n' + err + '\n\n\n\n\n\n'
     policy_options_err, policy_options_config_1, policy_options_config_2 = policy_options_diff(config, config2)
+
     err_text += '8、路由发布对比\n\n' + policy_options_err + '\n\n\n\n\n\n'
     cpm_filter_err, config_1_cpm_filter, config_2_cpm_filter = cpm_filter_check(config, config2)
+
     err_text += '9、cpm-filter\n\n' + cpm_filter_err + '\n\n\n\n\n\n'
-    err, config3, config4 = ip_filter_200(config, config2, config3, config4)
+    err, config3, config4 = ip_filter_200(config3, config4)
+
     err_text += '10、ip-filter 200限制\n\n' +  err + '\n\n\n\n\n\n'
+
     err_text += '11、垃圾静态路由检查\n\n' + host_1_name + ' 检查命令脚本\n\n' + vprn_static_route_check(config) + '\n' \
         + host_2_name + ' 检查命令脚本\n\n' + vprn_static_route_check(config2) + '\n\n\n\n\n\n'
-    err_text += '12、静态路由错误配置检查\n\n' + check_static_router(config, config2) + '\n\n\n\n\n\n'
 
-    if policy_options_err != '检查通过' or cpm_filter_err != '检查通过':
-        hd = difflib.HtmlDiff()
-        file_path = os.path.join('检查结果', '{}和{}'.format(host_1_name, host_2_name))
-        html_path = os.path.join(file_path, '{}与{} 对比检查结果.html'.format(host_1_name, host_2_name))
+    err, err_static_route, err_static_route_2 = check_static_router(config, config2)
+    err_text += '12、静态路由错误配置检查\n\n' + err + '\n\n\n\n\n\n'
 
-        html_str = hd.make_file(config_1_cpm_filter.split('\n') + policy_options_config_1.split('\n')
-            , config_2_cpm_filter.split('\n') + policy_options_config_2.split('\n'))
-        file_path = os.path.join('检查结果', '{}和{}'.format(host_1_name, host_2_name))
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
+    if policy_options_err != '检查通过':
+        text1_lines = policy_options_config_1.splitlines()
+        text2_lines = policy_options_config_2.splitlines()
+        d = difflib.Differ()
 
-        with open(html_path,'w', encoding='utf-8') as fo:
-            fo.write(html_str)
-            fo.close()
+        if config3:
+            diff = d.compare(text1_lines, text2_lines)
+            diff_str = "\n".join(list(diff))
+            config3 = config3.replace(policy_options_config_1, diff_str)
 
-     #把与ce3对比结果写入文件
+        if config4:
+            diff = d.compare(text2_lines, text1_lines)
+            diff_str = "\n".join(list(diff))
+            config4 = config4.replace(policy_options_config_2, diff_str)
+
+
+    if cpm_filter_err != '检查通过':
+        text1_lines = config_1_cpm_filter.splitlines()
+        text2_lines = config_2_cpm_filter.splitlines()
+        d = difflib.Differ()
+
+        if config3:
+            diff = d.compare(text1_lines, text2_lines)
+            diff_str = "\n".join(list(diff))
+            config3 = config3.replace(config_1_cpm_filter, diff_str)
+
+        if config4:
+            diff = d.compare(text2_lines, text1_lines)
+            diff_str = "\n".join(list(diff))
+            config4 = config4.replace(config_2_cpm_filter, diff_str)
+
+    if err != '检查通过':
+        for i in err_static_route:
+            temp = ''
+            for j in i.splitlines():
+                temp += 'x' + j + '\n'
+            config3 = config3.replace(i, temp)
+
+        for i in err_static_route_2:
+            temp = ''
+            for j in i.splitlines():
+                temp += 'x' + j + '\n'
+            config4 = config4.replace(i, temp)
+
+    #把与ce3对比结果写入文件
+    if not os.path.exists('检查结果'):
+        os.makedirs('检查结果')
+    p_system_address = r'(?s)(interface "system"\n {12}address (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\w\w))'
+    res_system_address_1 = re.search(p_system_address, config3)
+    res_system_address_2 = re.search(p_system_address, config4)
     if config3:
-        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA 对比检查结果.log'.format(host_1_name))
-        if not os.path.exists('检查结果'):
-            os.makedirs('检查结果')
-
-        with open(log_path, 'w') as f:
+        if res_system_address_1 and res_system_address_2:
+            config3 = config3.replace(res_system_address_1.group(2), res_system_address_1.group(2) + ' #python标注system地址')
+            config3 = config3.replace(res_system_address_2.group(2), res_system_address_2.group(2) + ' #python标注system地址')
+        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_1_name, host_2_name))
+        with open(log_path, 'w', encoding='utf-8') as f:
             f.write(config3)
 
     if config4:
-        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA 对比检查结果.log'.format(host_2_name))
-        with open(log_path, 'w') as f:
+        if res_system_address_1 and res_system_address_2:
+            config4 = config4.replace(res_system_address_1.group(2), res_system_address_1.group(2) + ' #python标注system地址')
+            config4 = config4.replace(res_system_address_2.group(2), res_system_address_2.group(2) + ' #python标注system地址')
+        log_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_2_name, host_1_name))
+        with open(log_path, 'w', encoding='utf-8') as f:
             f.write(config4)
 
     return err_text
