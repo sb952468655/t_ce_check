@@ -20,10 +20,15 @@ class App(tk.Frame):
 
     def create_win(self):
         f1 = tk.Frame(self)
+        self.kind = tk.StringVar(f1)
+        self.kind.set("CE配置静态检查")
+        self.op = tk.OptionMenu(f1, self.kind, 'CE配置静态检查', '垃圾静态路由检查', '成对CE路由发布对比')
+        self.op.pack(side=tk.LEFT)
         self.import1_btn = tk.Button(f1, text='导入设备1配置', command=self.import_config)
+        # self.import1_btn.bind("<Button-1>", self.callBack)
         self.import1_btn.pack(side=tk.LEFT)
         self.import2_btn = tk.Button(f1, text='导入设备2配置', command=self.import2)
-        self.import2_btn.pack(side=tk.LEFT)
+        # self.import2_btn.pack(side=tk.LEFT)
         self.check_btn = tk.Button(f1, text='检查', command=self.check)
         self.check_btn.pack(side=tk.LEFT)
         self.export_btn = tk.Button(f1, text='导出检查结果', command=self.export)
@@ -37,8 +42,19 @@ class App(tk.Frame):
         self.res_text.pack()
         self.scrollbar.config(command=self.res_text.yview)
 
+    def callBack(self, event):
+        if self.kind.get() == '成对CE路由发布对比':
+            self.import2_btn.pack(side=tk.LEFT)
+        else:
+            self.import2_btn.pack_forget()
+        self.import_config()
 
     def import_config(self):
+        if self.kind.get() == '成对CE路由发布对比':
+            self.import2_btn.pack(side=tk.LEFT)
+        else:
+            self.import2_btn.pack_forget()
+
         self.filename = filedialog.askopenfilename()
         self.res_text.delete(0.0,tk.END)
         #读取配置
@@ -68,32 +84,33 @@ class App(tk.Frame):
 
     def export(self):
         '''导出检查结果'''
-
-        file_path = os.path.join('检查结果', '{}和{}'.format(self.config_1_name, self.config_2_name))
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-
-        self.save_name = os.path.join(file_path, '{}与{}检查结果.log'.format(self.config_1_name, self.config_2_name))
-        with open(self.save_name, 'w', encoding='utf-8') as f:
-            f.write(self.res_text.get("0.0", "end"))
-
-        msg.showinfo('提示', '保存成功请在 {} 目录查看'.format(os.path.join(os.getcwd(),file_path + '\\')))
+        save_file = filedialog.asksaveasfilename()
+        if save_file:
+            f = open(save_file, 'w')
+            f.write(self.res_text.get(0.0, tk.END))
+            f.close()
 
     def check(self):
+        err = ''
         if self.config == None:
             msg.showerror('错误', '请导入设备1配置')
-            return
-        if self.config2 == None:
-            msg.showerror('错误', '请导入设备2配置')
             return
 
         if not self.check_ce3():
             msg.showerror('错误', 'JS-NJ-GL-CE-3.CDMA.log文件不存在，请检查')
             return
 
-        err_text = all_check(self.config, self.config2)
-        self.res_text.insert(tk.END, err_text)
-
+        check_kind = self.kind.get()
+        if check_kind == 'CE配置静态检查':
+            err = static_config_check(self.config)
+        elif check_kind == '垃圾静态路由检查':
+            if self.config2 == None:
+                msg.showerror('错误', '请导入设备2配置')
+                return
+        else:
+            # err = all_check(self.config, self.config2)
+            pass
+        self.res_text.insert(tk.END, err)
 
         #窗口最大化
         root.geometry("{}x{}".format(self.w, self.h))
@@ -106,7 +123,7 @@ class App(tk.Frame):
 
 root = tk.Tk()
 root.geometry('700x380+500+200')
-root.title('电信CE配置检查 V1.1.24')
+root.title('电信CE配置检查 V1.1.26')
 # root.resizable(0,0)
 myapp = App(master=root)
 myapp.mainloop()
