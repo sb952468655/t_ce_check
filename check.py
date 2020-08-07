@@ -454,8 +454,6 @@ def vprn_static_route_check(config):
         res_static_route2 = re.findall(p_static_route2, vprn[0])
         if not res_static_route:
             res_static_route = res_static_route2
-        if not res_static_route:
-            err += 'vprn {} 中 没有找到static-route\n'.format(vprn[1])
         for static_route in res_static_route:
             if 'next-hop' in static_route[0] and 'black-hole' not in static_route[0]:
                 res_next_hop = re.search(p_next_hop, static_route[0])
@@ -469,6 +467,8 @@ def policy_options_diff(config, config2):
     '''路由发布对比'''
 
     err = ''
+    config3 = config
+    config4 = config2
     p_policy_options = r'(?s)(policy-options.*?\n {8}exit)'
     res_policy_options_config_1 = re.search(p_policy_options, config)
     res_policy_options_config_2 = re.search(p_policy_options, config2)
@@ -484,18 +484,22 @@ def policy_options_diff(config, config2):
         err = '{}没有找到policy-options，请检查'.format(host_2_name)
         return err
 
-    if res_policy_options_config_1.group() == res_policy_options_config_2.group():
-        err = '路由发布对比一致\n'
-        return err
-
-    if res_policy_options_config_1.group() != res_policy_options_config_2.group():
-        html_path = os.path.join('检查结果', '{}与JS-NJ-GL-CE-3.CDMA及{} 对比检查结果.log'.format(host_1_name, host_2_name))
-        err += '{}与{} policy-options 对比不一致，请打开 {} 查看\n'.format(host_1_name, host_2_name, os.path.join(os.getcwd(),html_path))
+    res_str_1 = remove_right_space(res_policy_options_config_1.group())
+    res_str_2 = remove_right_space(res_policy_options_config_2.group())
+    if res_str_1 != res_str_2:
+        diff1 = diff(res_str_1, res_str_2) + '\n'
+        err += diff1
+        diff2 = diff(res_str_2, res_str_1) + '\n'
+        err += diff2
+        config3 = config3.replace(res_policy_options_config_1.group(), diff1)
+        config4 = config4.replace(res_policy_options_config_2.group(), diff2)
+        config3 = add_flag(config3)
+        config4 = add_flag(config4)
 
     if err == '':
         err = '检查通过'
 
-    return err, res_policy_options_config_1.group(), res_policy_options_config_2.group()
+    return err,config3, config4
 
 def cpm_filter_check(config1, config2):
     '''System Security Cpm下，一对CE配置要求一致（system地址除外）'''
@@ -586,6 +590,7 @@ def check_user(config):
         return '检查通过'
     else:
         return '{} 中没有 no user "admin" 配置，请检查'.format(host_1_name)
+
 def static_config_check(config):
     '''CE配置静态检查”模块：将原程序1、2、3、4、5、6、7、8、10、11、13项合为“CE配置静态检查”项'''
 
@@ -619,6 +624,23 @@ def static_config_check(config):
     err_text += '9、静态路由错误配置检查\n\n' + err + '\n\n'
 
     return err_text
+
+def static_route_check(config):
+    '''CE垃圾静态路由检查”模块菜单下包含：
+    1、生成CE检查脚本（可以导出，供用户在设备上使用）；
+    2、导入CE检查log（用户使用上步骤的脚本在设备上执行产生的log）；
+    3、检查，输出检查结果；4、导出检查结果'''
+
+    err = ''
+
+    return err
+
+def double_ce_route_check(config):
+    '''成对CE路由发布对比
+    -？ 表示自己比对方CE多的路由发布条目
+    +？ 表示自己比对方CE少的路由发布条目'''
+
+
 
 # def all_check(config, config2):
 #     '''检查所有项'''
