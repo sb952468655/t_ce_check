@@ -20,7 +20,6 @@ class App(tk.Frame):
 
     def create_win(self):
         self.f1 = tk.Frame(self)
-        self.f2 = tk.Frame(self)
         self.kind = tk.StringVar(self.f1)
         self.kind.set("CE配置静态检查")
         self.op = tk.OptionMenu(self.f1, self.kind, 'CE配置静态检查', '垃圾静态路由检查', '成对CE路由发布对比')
@@ -53,20 +52,11 @@ class App(tk.Frame):
 
     def import_config(self):
         if self.kind.get() == '成对CE路由发布对比':
-            self.check_btn['text'] = '检查'
-            self.import2_btn.pack(side=tk.LEFT)
-            self.import_ce_log_btn.pack_forget()
-            self.ce_check_btn.pack_forget()
+            self.sort_btn('成对CE路由发布对比')
         elif self.kind.get() == '垃圾静态路由检查':
-            self.import2_btn.pack_forget()
-            self.import_ce_log_btn.pack(side=tk.LEFT)
-            self.ce_check_btn.pack(side=tk.LEFT)
-            self.check_btn['text'] = '生成CE检查脚本'
+            self.sort_btn('垃圾静态路由检查')
         else:
-            self.check_btn['text'] = '检查'
-            self.import2_btn.pack_forget()
-            self.import_ce_log_btn.pack_forget()
-            self.ce_check_btn.pack_forget()
+            self.sort_btn('CE配置静态检查')
 
         self.filename = filedialog.askopenfilename()
         self.res_text.delete(0.0,tk.END)
@@ -210,9 +200,40 @@ class App(tk.Frame):
         root.attributes("-topmost",True)
         root.geometry("+0+0")
 
+    def sort_btn(self, check_type):
+        '''重新排列按钮'''
+        self.f1.place_forget()
+        if check_type == 'CE配置静态检查':
+            self.import2_btn.pack_forget()
+            self.import_ce_log_btn.pack_forget()
+            self.ce_check_btn.pack_forget()
+            self.check_btn['text'] = '检查'
+        elif check_type == '垃圾静态路由检查':
+            self.check_btn.pack_forget()
+            self.import2_btn.pack_forget()
+            self.import_ce_log_btn.pack_forget()
+            self.ce_check_btn.pack_forget()
+            self.export_btn.pack_forget()
+            self.import_ce_log_btn.pack(side=tk.LEFT)
+            self.check_btn.pack(side=tk.LEFT)
+            self.ce_check_btn.pack(side=tk.LEFT)
+            self.check_btn['text'] = '生成CE检查脚本'
+            self.export_btn.pack(side=tk.LEFT)
+        else:
+            self.check_btn.pack_forget()
+            self.import2_btn.pack_forget()
+            self.import_ce_log_btn.pack_forget()
+            self.ce_check_btn.pack_forget()
+            self.export_btn.pack_forget()
+            self.check_btn['text'] = '检查'
+            self.import2_btn.pack(side=tk.LEFT)
+            self.check_btn.pack(side=tk.LEFT)
+            self.export_btn.pack(side=tk.LEFT)
+
+
 
 root = tk.Tk()
-root.geometry('700x380+500+200')
+root.geometry('1000x380+800+300')
 root.title('电信CE配置检查 R2020.8.7.1')
 # root.resizable(0,0)
 myapp = App(master=root)

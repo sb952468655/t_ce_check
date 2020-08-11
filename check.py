@@ -487,10 +487,11 @@ def policy_options_diff(config, config2):
     res_str_1 = remove_right_space(res_policy_options_config_1.group())
     res_str_2 = remove_right_space(res_policy_options_config_2.group())
     if res_str_1 != res_str_2:
-        diff1 = diff(res_str_1, res_str_2) + '\n'
-        err += diff1
+
+        diff1 = diff(res_str_1, res_str_2) + '\n\n'
+        err += '配置一\n\n' + diff1
         diff2 = diff(res_str_2, res_str_1) + '\n'
-        err += diff2
+        err += '配置二\n\n' + diff2
         config3 = config3.replace(res_policy_options_config_1.group(), diff1)
         config4 = config4.replace(res_policy_options_config_2.group(), diff2)
         config3 = add_flag(config3)
